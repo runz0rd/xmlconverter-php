@@ -1,0 +1,34 @@
+{
+    "name": "runz0rd/xmlconverter-php",
+    "description": "xml conversion",
+    "keywords": ["library", "php", "xml", "convert", "array", "object"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Milos Pejanovic",
+            "email": "pejan123@gmail.com",
+            "role": "lead"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/runz0rd/xmlconverter-php/issues"
+    },
+    "require": {
+        "php": ">=7.0.1",
+        "runz0rd/common-php": "2.2.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~5"
+    },
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
+    },
+    "autoload-dev": {
+        "classmap": [
+            "tests/"
+        ]
+    }
+}
