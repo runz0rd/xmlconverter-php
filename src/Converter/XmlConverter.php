@@ -8,6 +8,7 @@
  */
 namespace Converter;
 
+use Common\Util\Iteration;
 use Common\Util\Xml;
 
 class XmlConverter implements IConverter {
@@ -39,51 +40,110 @@ class XmlConverter implements IConverter {
 		return $output;
 	}
 
+    /**
+     * @param string $data
+     * @return string
+     */
 	public static function toJson($data) {
-		// TODO: Implement toJson() method.
+		return json_encode(self::toArray($data));
 	}
 
+    /**
+     * @param string $data
+     * @return object
+     */
 	public static function toObject($data) {
-		// TODO: Implement toObject() method.
+        return (object) self::toArray($data);
 	}
 
+    /**
+     * @param string $data
+     * @return string
+     */
 	public static function toXml($data) {
-		// TODO: Implement toXml() method.
+        return $data;
 	}
 
+    /**
+     * @param \XMLReader $cursor
+     * @return array|mixed
+     */
 	private function readToArray(\XMLReader $cursor) {
 		$output = [];
-
 		if($cursor->hasAttributes) {
-			while($cursor->moveToNextAttribute()) {
-				$output[self::ATTRIBUTES_KEY][$cursor->name] = $cursor->value;
-			}
-			$cursor->moveToElement();
+            $output = self::pushAttributes($cursor, $output);
+            $cursor->moveToElement();
 		}
 		if(!$cursor->isEmptyElement) {
-			while ($cursor->read()) {
-				if ($cursor->nodeType === \XMLReader::END_ELEMENT) {
-					break;
-				}
-
-				if ($cursor->nodeType === \XMLReader::ELEMENT) {
-					$output[$cursor->name] = self::readToArray($cursor);
-				}
-
-				if ($cursor->nodeType === \XMLReader::TEXT) {
-					if (isset($output[self::ATTRIBUTES_KEY])) {
-						$output[self::VALUE_KEY] = $cursor->value;
-					} else {
-						$output = $cursor->value;
-					}
-				}
-			}
-		}
-
-		return $output;
+            while ($cursor->read()) {
+                switch ($cursor->nodeType) {
+                    case \XMLReader::END_ELEMENT:
+                        break 2;
+                    case \XMLReader::ELEMENT:
+                        $output = self::pushElement($cursor, $output);
+                        break;
+                    case \XMLReader::TEXT:
+                        $output = self::pushText($cursor, $output);
+                        break;
+                }
+            }
+        }
+        return $output;
 	}
 
-	private function readAttributes() {
-		//TODO extract from readToArray
+    /**
+     * @param \XMLReader $cursor
+     * @param array $output
+     * @return array
+     */
+	private function pushAttributes(\XMLReader $cursor, array $output) {
+        while($cursor->moveToNextAttribute()) {
+            $output[self::ATTRIBUTES_KEY][$cursor->name] = $cursor->value;
+        }
+        return $output;
 	}
+
+    /**
+     * @param \XMLReader $cursor
+     * @param array $output
+     * @return array
+     */
+    private function pushElement(\XMLReader $cursor, array $output) {
+        if(isset($output[$cursor->name])) {
+            $output = self::pushCollection($cursor, $output);
+        }
+        else {
+            $output[$cursor->name] = self::readToArray($cursor);
+        }
+        return $output;
+    }
+
+    /**
+     * @param \XMLReader $cursor
+     * @param array $output
+     * @return array|mixed
+     */
+    private function pushText(\XMLReader $cursor, array $output) {
+        $value = Iteration::typeFilter($cursor->value);
+        if(empty($output)) {
+            $output = $value;
+        }
+        else {
+            $output[self::VALUE_KEY] = $value;
+        }
+        return $output;
+    }
+
+    /**
+     * @param \XMLReader $cursor
+     * @param array $output
+     * @return array
+     */
+    private function pushCollection(\XMLReader $cursor, array $output) {
+        if(!is_array($output[$cursor->name]) || !is_numeric(key($output[$cursor->name]))) {
+            $output[$cursor->name] = [$output[$cursor->name]];
+        }
+        $output[$cursor->name][] = self::readToArray($cursor);
+        return $output;
+    }
 }
